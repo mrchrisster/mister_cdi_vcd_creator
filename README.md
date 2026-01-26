@@ -1,5 +1,7 @@
 # MiSTer CD-i VCD Factory
 
+[https://github.com/mrchrisster/mister_cdi_vcd_creator/blob/main/media/script.png]
+
 A robust, cross-platform batch tool to convert modern video files into **Philips CD-i compatible** Video CD (VCD) disc images.
 
 Designed for use with the **MiSTer FPGA CD-i Core** and accurate emulators (MAME/cdiemu).
