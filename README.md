@@ -14,8 +14,9 @@ Designed for use with the **MiSTer FPGA CD-i Core** and accurate emulators (MAME
 - **Linux:** Debian/Ubuntu based system.
 
 ## Usage
-1. Copy sh script to a local folder, for example:
+1. Copy sh script to a local folder, for example:  
    ```mkdir -p ~/mister_cdi_vcd_creator && cd ~/mister_cdi_vcd_creator && curl -kLO https://raw.githubusercontent.com/mrchrisster/mister_cdi_vcd_creator/batch-vcd-creator.sh```
+     
 3. Run tool once with `./batch-vcd-creator.sh` to create folder structure
 4. Drop your video file(s) in `input` folder
 5. Run `./batch-vcd-creator.sh`
