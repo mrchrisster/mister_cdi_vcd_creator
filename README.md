@@ -15,7 +15,7 @@ Designed for use with the **MiSTer FPGA CD-i Core** and accurate emulators (MAME
 
 ## Usage
 1. Copy sh script to a local folder. Here is an all in one command to install:  
-   ```mkdir -p ~/mister_cdi_vcd_creator && cd ~/mister_cdi_vcd_creator && curl -kLO https://raw.githubusercontent.com/mrchrisster/mister_cdi_vcd_creator/batch-vcd-creator.sh && chmod +x batch-vcd-creator.sh```
+   ```mkdir -p ~/mister_cdi_vcd_creator && cd ~/mister_cdi_vcd_creator && curl -kLO https://raw.githubusercontent.com/mrchrisster/mister_cdi_vcd_creator/refs/heads/main/batch-vcd-creator.sh && chmod +x batch-vcd-creator.sh```
      
 3. Run tool once with `./batch-vcd-creator.sh` to create folder structure
 4. Drop your video file(s) in `input` folder
