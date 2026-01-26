@@ -20,3 +20,7 @@ Designed for use with the **MiSTer FPGA CD-i Core** and accurate emulators (MAME
 4. Drop your video file(s) in `input` folder
 5. Run `./batch-vcd-creator.sh`
 6. Watch for errors like `⚠️  WARNING: Buffer starvation detected!`
+
+## Credits
+Thanks to slamy for creating the CDI core for MiSTer. Check his MPEG1 handbook which helped a lot when creating this:  
+https://github.com/Slamy/MPEG1_Handbook/tree/main
