@@ -2,10 +2,11 @@
 
 # ==============================================================================
 #  CD-i VIDEO CD FACTORY (v11 - The Final Videophile Edition)
-#  - SETTINGS: Videophile Quality (-K tmpgenc, 8-bit precision, Safety Buffer).
+#  - SETTINGS: Prioritzes Quality (-K tmpgenc, 8-bit precision, Safety Buffer).
 #  - FEATURES: Auto-Framerate, Auto-CHD, K3b Cloning (Autoplay + Mixed Mode).
 #  - FIXED: Main loop syntax errors & Dependency checking.
 # ==============================================================================
+#TODO Pal res settings
 
 # --- CONFIGURATION ---
 INPUT_DIR="./input"
@@ -79,15 +80,8 @@ install_deps() {
 # ==============================================================================
 setup_bridge() {
     mkdir -p "$CDI_FIX_DIR"
-    
-    # K3b System File Check (Copy local if available)
-    if [ -f "/usr/share/k3b/cdi/cdi_vcd.app" ] && [ ! -f "$CDI_FIX_DIR/CDI_VCD.APP" ]; then
-        cp "/usr/share/k3b/cdi/cdi_vcd.app" "$CDI_FIX_DIR/CDI_VCD.APP"
-        cp "/usr/share/k3b/cdi/cdi_text.fnt" "$CDI_FIX_DIR/CDI_TEXT.FNT"
-        cp "/usr/share/k3b/cdi/cdi_imag.rtf" "$CDI_FIX_DIR/CDI_IMAG.RTF"
-    fi
 
-    # Fallback Download
+    # Download
     if [ ! -f "$CDI_FIX_DIR/CDI_VCD.APP" ]; then
         curl -L -o "$CDI_FIX_DIR/bridge.zip" http://www.icdia.co.uk/sw_app/vcd_on_cdi_411.zip
         unzip -o -q "$CDI_FIX_DIR/bridge.zip" -d "$CDI_FIX_DIR"
