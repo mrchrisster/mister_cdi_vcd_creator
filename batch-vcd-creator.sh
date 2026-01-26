@@ -152,7 +152,7 @@ process_video() {
     echo -e "\n--- VIDEO ENCODING LOG ---" >> "$LOG_FILE"
     
     (ffmpeg -v info -i "$FILE" \
-        -vf "crop='min(iw,ih*4/3)':'min(ih,iw*3/4)',scale=352:240:flags=bicubic,hqdn3d=7:7:16:16,unsharp=3:3:-0.5:3:3:-0.5" \
+        -vf "crop='min(iw,ih*4/3)':'min(ih,iw*3/4)',scale=352:240" \
         $FFMPEG_RATE -pix_fmt yuv420p -f yuv4mpegpipe - 2>> "$LOG_FILE" \
         | mpeg2enc -v 0 -f 1 -n n -a 2 -K tmpgenc -r 32 -4 1 -q 6 -b 1150 -o "temp_video.m1v" 2>> "$LOG_FILE")
 
