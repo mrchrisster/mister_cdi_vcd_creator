@@ -17,7 +17,7 @@ Designed for use with the **MiSTer FPGA CD-i Core** and accurate emulators (MAME
 - Tools needed: ffmpeg, mjpegtools, vcdimager, rom-tools (on macOS) or mame-tools (on Linux).
 
 ## Script
-<img src="https://github.com/mrchrisster/mister_cdi_vcd_creator/blob/main/media/script.png" width="50%" alt="description">
+<img src="https://github.com/mrchrisster/mister_cdi_vcd_creator/blob/main/media/script.png" width="70%" alt="description">
 
 ## Usage
 1. Copy sh script to a local folder on your computer. Here is an all in one command to install:  
