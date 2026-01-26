@@ -1,11 +1,10 @@
 #!/bin/bash
 
 # ==============================================================================
-#  CD-i VIDEO CD FACTORY (v9 - The Videophile Edition)
-#  - NEW: Uses '-K tmpgenc' Quantization Matrix for smoother visuals.
-#  - NEW: Uses '-4 1' (8-bit precision) for strict hardware compliance.
-#  - Auto-CHD: Automatically compresses to CHD if chdman is installed.
-#  - Accurate Error Detection (Greps specific buffer starvation warnings).
+#  CD-i VIDEO CD FACTORY (v11 - The Final Videophile Edition)
+#  - SETTINGS: Videophile Quality (-K tmpgenc, 8-bit precision, Safety Buffer).
+#  - FEATURES: Auto-Framerate, Auto-CHD, K3b Cloning (Autoplay + Mixed Mode).
+#  - FIXED: Main loop syntax errors & Dependency checking.
 # ==============================================================================
 
 # --- CONFIGURATION ---
@@ -26,14 +25,53 @@ NC='\033[0m'
 # ==============================================================================
 install_deps() {
     echo -e "${BLUE}🔍 Checking system dependencies...${NC}"
+    local MISSING_TOOLS=0
+    
+    # 1. Check for Standard Tools
     for tool in ffmpeg ffprobe mpeg2enc mplex vcdxbuild curl unzip; do
-        if ! command -v $tool &> /dev/null; then
+        if ! command -v $tool &> /dev/null; then 
+            MISSING_TOOLS=1
             echo -e "${RED}❌ Missing tool: $tool${NC}"
-            echo "Please install ffmpeg, mjpegtools, and vcdimager."
-            exit 1
         fi
     done
-    echo -e "${GREEN}✅ All tools are installed.${NC}"
+
+    # 2. Check for CHDMAN (Special Handling)
+    if ! command -v chdman &> /dev/null; then
+        MISSING_TOOLS=1
+        echo -e "${RED}❌ Missing tool: chdman${NC}"
+    fi
+
+    if [ $MISSING_TOOLS -eq 0 ]; then
+        echo -e "${GREEN}✅ All tools are installed.${NC}"
+        return
+    fi
+
+    # 3. Auto-Install Logic
+    echo -e "${YELLOW}⚠️  Missing tools detected. Attempting installation...${NC}"
+    
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS (Homebrew)
+        if ! command -v brew &> /dev/null; then echo -e "${RED}❌ Install Homebrew first.${NC}"; exit 1; fi
+        brew install ffmpeg mjpegtools vcdimager rom-tools
+    
+    elif [ -f /etc/debian_version ]; then
+        # Debian / Ubuntu (APT)
+        # Note: chdman is inside 'mame-tools'
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg mjpegtools vcdimager curl unzip mame-tools
+    
+    else
+        echo -e "${RED}❌ Unsupported OS. Please install dependencies manually.${NC}"
+        echo "Required: ffmpeg, mjpegtools, vcdimager, chdman (part of MAME/rom-tools)"
+        exit 1
+    fi
+    
+    # Double check after install attempt
+    if ! command -v chdman &> /dev/null; then
+        echo -e "${RED}❌ Installation failed or chdman is still missing.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✅ Installation complete.${NC}"
 }
 
 # ==============================================================================
@@ -42,7 +80,7 @@ install_deps() {
 setup_bridge() {
     mkdir -p "$CDI_FIX_DIR"
     
-    # K3b System File Check
+    # K3b System File Check (Copy local if available)
     if [ -f "/usr/share/k3b/cdi/cdi_vcd.app" ] && [ ! -f "$CDI_FIX_DIR/CDI_VCD.APP" ]; then
         cp "/usr/share/k3b/cdi/cdi_vcd.app" "$CDI_FIX_DIR/CDI_VCD.APP"
         cp "/usr/share/k3b/cdi/cdi_text.fnt" "$CDI_FIX_DIR/CDI_TEXT.FNT"
@@ -110,9 +148,6 @@ process_video() {
     echo "Detection: $FPS_INT fps -> Mode: $MODE_MSG" >> "$LOG_FILE"
 
     # 3.2 ENCODE VIDEO (Videophile Settings)
-    # -K tmpgenc: High quality quantization matrix
-    # -4 1: 8-bit precision (Strict VCD compliance)
-    # -V 30: Safety buffer (prevents crashes on complex scenes)
     echo -e "   ${YELLOW}⚡ Encoding Video Stream...${NC}"
     echo -e "\n--- VIDEO ENCODING LOG ---" >> "$LOG_FILE"
     
@@ -187,6 +222,7 @@ EOF
             chdman createcd -i "$OUTPUT_DIR/${CLEAN_NAME}.cue" -o "$OUTPUT_DIR/${CLEAN_NAME}.chd" >> "$LOG_FILE" 2>&1
             if [ -f "$OUTPUT_DIR/${CLEAN_NAME}.chd" ]; then
                 echo -e "${GREEN}✅ Created CHD: $OUTPUT_DIR/${CLEAN_NAME}.chd${NC}"
+                # Optional: rm "$OUTPUT_DIR/${CLEAN_NAME}.bin" "$OUTPUT_DIR/${CLEAN_NAME}.cue"
             fi
         fi
         echo -e "${CYAN}   Log saved to: $LOG_FILE${NC}"
@@ -211,7 +247,11 @@ fi
 
 for video in "$INPUT_DIR"/*; do
     [ -e "$video" ] || continue
-    [[ $(basename "$video") == .* ]] && continue
+    
+    # SAFE FILENAME CHECK
+    FILENAME=$(basename "$video")
+    if [[ "$FILENAME" == .* ]]; then continue; fi
+    
     process_video "$video"
 done
 
