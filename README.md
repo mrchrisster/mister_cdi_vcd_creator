@@ -19,7 +19,7 @@ Designed for use with the **MiSTer FPGA CD-i Core** and accurate emulators (MAME
    ```mkdir -p ~/mister_cdi_vcd_creator && cd ~/mister_cdi_vcd_creator && curl -kLO https://raw.githubusercontent.com/mrchrisster/mister_cdi_vcd_creator/refs/heads/main/batch-vcd-creator.sh && chmod +x batch-vcd-creator.sh```
   
 2. Install tools needed listed in prerequisites or simply launch the script to install tools.
-3. Run tool once with `./batch-vcd-creator.sh` to create folder structure. It will say `⚠️  Input folder is empty! Place videos in ./input`
+3. Run script once with `./batch-vcd-creator.sh` to create folder structure. It will say `⚠️  Input folder is empty! Place videos in ./input`
 4. Drop your video file(s) in `input` folder
 5. Run `./batch-vcd-creator.sh`
 6. Watch for errors like `⚠️  WARNING: Buffer starvation detected!`
