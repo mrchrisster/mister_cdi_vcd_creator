@@ -72,7 +72,18 @@ setup_bridge() {
         curl -L -o "$CDI_FIX_DIR/bridge.zip" http://www.icdia.co.uk/sw_app/vcd_on_cdi_411.zip
         unzip -o -q "$CDI_FIX_DIR/bridge.zip" -d "$CDI_FIX_DIR"
         rm "$CDI_FIX_DIR/bridge.zip"
-        for f in "$CDI_FIX_DIR"/*; do mv "$f" "${f^^}" 2>/dev/null; done
+        
+        # FIX: macOS compatible uppercase conversion using 'tr'
+        for f in "$CDI_FIX_DIR"/*; do
+            DIRNAME=$(dirname "$f")
+            BASENAME=$(basename "$f")
+            UPPER_NAME=$(echo "$BASENAME" | tr '[:lower:]' '[:upper:]')
+            if [ "$BASENAME" != "$UPPER_NAME" ]; then
+                mv "$f" "$DIRNAME/$UPPER_NAME" 2>/dev/null
+            fi
+        done
+        
+        # Ensure main app is definitely present under the expected name
         mv "$CDI_FIX_DIR/CDI_VCD.APP" "$CDI_FIX_DIR/CDI_VCD.APP" 2>/dev/null
     fi
 
