@@ -1,12 +1,11 @@
 #!/bin/bash
 
 # ==============================================================================
-#  CD-i VIDEO CD FACTORY (v11 - The Final Videophile Edition)
-#  - SETTINGS: Prioritzes Quality (-K tmpgenc, 8-bit precision, Safety Buffer).
-#  - FEATURES: Auto-Framerate, Auto-CHD, K3b Cloning (Autoplay + Mixed Mode).
-#  - FIXED: Main loop syntax errors & Dependency checking.
+#  CD-i VIDEO CD FACTORY (v15 - World Standard Edition)
+#  - NEW: Full PAL Support (352x288 @ 25fps).
+#  - LOGIC: Auto-detects PAL (25/50fps) vs NTSC (23/24/30/60fps).
+#  - SETTINGS: High Quality (-K tmpgenc, 8-bit precision, -q 6).
 # ==============================================================================
-#TODO Pal res settings
 
 # --- CONFIGURATION ---
 INPUT_DIR="./input"
@@ -36,7 +35,7 @@ install_deps() {
         fi
     done
 
-    # 2. Check for CHDMAN (Special Handling)
+    # 2. Check for CHDMAN
     if ! command -v chdman &> /dev/null; then
         MISSING_TOOLS=1
         echo -e "${RED}❌ Missing tool: chdman${NC}"
@@ -51,28 +50,15 @@ install_deps() {
     echo -e "${YELLOW}⚠️  Missing tools detected. Attempting installation...${NC}"
     
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS (Homebrew)
         if ! command -v brew &> /dev/null; then echo -e "${RED}❌ Install Homebrew first.${NC}"; exit 1; fi
         brew install ffmpeg mjpegtools vcdimager rom-tools
-    
     elif [ -f /etc/debian_version ]; then
-        # Debian / Ubuntu (APT)
-        # Note: chdman is inside 'mame-tools'
         sudo apt-get update
         sudo apt-get install -y ffmpeg mjpegtools vcdimager curl unzip mame-tools
-    
     else
         echo -e "${RED}❌ Unsupported OS. Please install dependencies manually.${NC}"
-        echo "Required: ffmpeg, mjpegtools, vcdimager, chdman (part of MAME/rom-tools)"
         exit 1
     fi
-    
-    # Double check after install attempt
-    if ! command -v chdman &> /dev/null; then
-        echo -e "${RED}❌ Installation failed or chdman is still missing.${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}✅ Installation complete.${NC}"
 }
 
 # ==============================================================================
@@ -81,7 +67,7 @@ install_deps() {
 setup_bridge() {
     mkdir -p "$CDI_FIX_DIR"
 
-    # Download
+    # Download if missing
     if [ ! -f "$CDI_FIX_DIR/CDI_VCD.APP" ]; then
         curl -L -o "$CDI_FIX_DIR/bridge.zip" http://www.icdia.co.uk/sw_app/vcd_on_cdi_411.zip
         unzip -o -q "$CDI_FIX_DIR/bridge.zip" -d "$CDI_FIX_DIR"
@@ -125,30 +111,51 @@ process_video() {
     echo "File: $FILENAME" >> "$LOG_FILE"
     echo "----------------------------------------------------------------" >> "$LOG_FILE"
 
-    # 3.1 DETECT FRAMERATE
+    # 3.1 DETECT FRAMERATE & SET STANDARD
     RAW_FPS=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of default=noprint_wrappers=1:nokey=1 "$FILE")
+    
+    if [ -z "$RAW_FPS" ]; then
+        echo -e "${RED}❌ Error: Could not detect framerate.${NC}"
+        return
+    fi
+
     FPS_INT=$(echo $RAW_FPS | awk -F/ '{ if ($2 == 0) print 0; else print int($1/$2 + 0.5) }')
 
-    if [ "$FPS_INT" -lt 26 ]; then
+    # === NEW: PAL VS NTSC LOGIC ===
+    # If FPS is 25 or 50, treat as PAL.
+    if [ "$FPS_INT" -eq 25 ] || [ "$FPS_INT" -eq 50 ]; then
+        MODE_MSG="PAL (25 fps)"
+        FFMPEG_RATE="-r 25"
+        MPEG2_FLAG="-n p"     # 'p' = PAL Standard
+        SCALE_RES="352:288"   # Taller resolution for PAL
+    
+    # If FPS < 26 (and not 25), treat as NTSC FILM (23.976)
+    elif [ "$FPS_INT" -lt 26 ]; then
         MODE_MSG="NTSC FILM (23.976 fps)"
         FFMPEG_RATE="-r 24000/1001"
-        MPEG2_FLAG="-n p"
+        MPEG2_FLAG="-n n"     # 'n' = NTSC Standard
+        SCALE_RES="352:240"
+        
+    # Otherwise treat as NTSC VIDEO (29.97)
     else
         MODE_MSG="NTSC VIDEO (29.97 fps)"
         FFMPEG_RATE="-r 30000/1001"
-        MPEG2_FLAG="-n n"
+        MPEG2_FLAG="-n n"     # 'n' = NTSC Standard
+        SCALE_RES="352:240"
     fi
+
     echo -e "   ${CYAN}📊 Detected $FPS_INT fps. Mode: $MODE_MSG${NC}"
-    echo "Detection: $FPS_INT fps -> Mode: $MODE_MSG" >> "$LOG_FILE"
+    echo "Detection: $FPS_INT fps -> Mode: $MODE_MSG | Res: $SCALE_RES" >> "$LOG_FILE"
 
     # 3.2 ENCODE VIDEO (Videophile Settings)
     echo -e "   ${YELLOW}⚡ Encoding Video Stream...${NC}"
     echo -e "\n--- VIDEO ENCODING LOG ---" >> "$LOG_FILE"
     
+    # We use $SCALE_RES for the resolution and $MPEG2_FLAG for the Norm
     (ffmpeg -v info -i "$FILE" \
-        -vf "crop='min(iw,ih*4/3)':'min(ih,iw*3/4)',scale=352:240" \
+        -vf "crop='min(iw,ih*4/3)':'min(ih,iw*3/4)',scale=$SCALE_RES" \
         $FFMPEG_RATE -pix_fmt yuv420p -f yuv4mpegpipe - 2>> "$LOG_FILE" \
-        | mpeg2enc -v 0 -f 1 -n n -a 2 -K tmpgenc -r 32 -4 1 -q 6 -b 1150 -o "temp_video.m1v" 2>> "$LOG_FILE")
+        | mpeg2enc -v 0 -f 1 $MPEG2_FLAG -a 2 -K tmpgenc -r 32 -4 1 -q 6 -b 1150 -o "temp_video.m1v" 2>> "$LOG_FILE")
 
     if [ ! -s "temp_video.m1v" ]; then 
         echo -e "${RED}❌ Encoding failed. Check $LOG_FILE.${NC}"
@@ -241,10 +248,17 @@ fi
 
 for video in "$INPUT_DIR"/*; do
     [ -e "$video" ] || continue
-    
-    # SAFE FILENAME CHECK
     FILENAME=$(basename "$video")
-    if [[ "$FILENAME" == .* ]]; then continue; fi
+    
+    # IGNORE NON-VIDEO FILES
+    if [[ "$FILENAME" == .* ]] || \
+       [[ "$FILENAME" == *.chd ]] || \
+       [[ "$FILENAME" == *.bin ]] || \
+       [[ "$FILENAME" == *.cue ]] || \
+       [[ "$FILENAME" == *.iso ]] || \
+       [[ "$FILENAME" == *.log ]]; then 
+       continue
+    fi
     
     process_video "$video"
 done
