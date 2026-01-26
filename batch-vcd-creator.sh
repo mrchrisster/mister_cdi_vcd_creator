@@ -137,21 +137,21 @@ process_video() {
     if [ "$FPS_INT" -eq 25 ] || [ "$FPS_INT" -eq 50 ]; then
         MODE_MSG="PAL (25 fps)"
         FFMPEG_RATE="-r 25"
-        MPEG2_FLAG="-n p"     # 'p' = PAL Standard
+        TV_STD_FLAG="-n p"     # 'p' = PAL Standard
         SCALE_RES="352:288"   # Taller resolution for PAL
     
     # If FPS < 26 (and not 25), treat as NTSC FILM (23.976)
     elif [ "$FPS_INT" -lt 26 ]; then
         MODE_MSG="NTSC FILM (23.976 fps)"
         FFMPEG_RATE="-r 24000/1001"
-        MPEG2_FLAG="-n n"     # 'n' = NTSC Standard
+        TV_STD_FLAG="-n n"     # 'n' = NTSC Standard
         SCALE_RES="352:240"
         
     # Otherwise treat as NTSC VIDEO (29.97)
     else
         MODE_MSG="NTSC VIDEO (29.97 fps)"
         FFMPEG_RATE="-r 30000/1001"
-        MPEG2_FLAG="-n n"     # 'n' = NTSC Standard
+        TV_STD_FLAG="-n n"     # 'n' = NTSC Standard
         SCALE_RES="352:240"
     fi
 
@@ -162,11 +162,11 @@ process_video() {
     echo -e "   ${YELLOW}⚡ Encoding Video Stream...${NC}"
     echo -e "\n--- VIDEO ENCODING LOG ---" >> "$LOG_FILE"
     
-    # We use $SCALE_RES for the resolution and $MPEG2_FLAG for the Norm
+    # We use $SCALE_RES for the resolution and $TV_STD_FLAG for the Norm
     (ffmpeg -v info -i "$FILE" \
         -vf "crop='min(iw,ih*4/3)':'min(ih,iw*3/4)',scale=$SCALE_RES" \
         $FFMPEG_RATE -pix_fmt yuv420p -f yuv4mpegpipe - 2>> "$LOG_FILE" \
-        | mpeg2enc -v 0 -f 1 $MPEG2_FLAG -a 2 -K tmpgenc -r 32 -4 1 -q 6 -b 1150 -o "temp_video.m1v" 2>> "$LOG_FILE")
+        | mpeg2enc -v 0 -f 1 $TV_STD_FLAG -a 2 -K tmpgenc -r 32 -4 1 -q 6 -b 1150 -o "temp_video.m1v" 2>> "$LOG_FILE")
 
     if [ ! -s "temp_video.m1v" ]; then 
         echo -e "${RED}❌ Encoding failed. Check $LOG_FILE.${NC}"
