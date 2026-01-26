@@ -8,7 +8,7 @@ Designed for use with the **MiSTer FPGA CD-i Core** and accurate emulators (MAME
 - **Strict Compliance:** Uses `mpeg2enc` to enforce CD-i hardware limits.
 - **Dependency Management:** Tells you what tools are required on macOS and Linux.
 - **Bridge Files:** Automatically fetches the required "Green Book/White Book" bridge files.
-- **Multiple output formats** bin/cue and chd support
+- **Multiple output formats:** bin/cue and chd support
 
 ## Prerequisites
 - **macOS:** Homebrew installed.
