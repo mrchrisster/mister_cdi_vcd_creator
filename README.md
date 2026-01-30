@@ -10,6 +10,7 @@ Designed for use with the **MiSTer FPGA CD-i Core** and accurate emulators (MAME
 - **Bridge Files:** Automatically fetches the required "Green Book/White Book" bridge files.
 - **Format detection:** PAL / NTSC
 - **Multiple output formats:** bin/cue and chd support
+- **Auto center crop:** All 16:9 files will be auto cropped to 4:3. (You will lose the left and right side)
 
 ## Prerequisites
 - **macOS:** Homebrew installed.
