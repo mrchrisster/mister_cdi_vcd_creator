@@ -50,6 +50,38 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
+# --- CROSS-PLATFORM HELPERS ---
+# macOS (BSD) sed requires `sed -i ''`, GNU sed uses `sed -i`
+sed_i() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
+
+# macOS (BSD) du and GNU du have different output formats
+# This returns a human-readable size string portably
+portable_du() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # BSD stat -f%z gives bytes; we convert to human-readable
+        local bytes
+        bytes=$(stat -f%z "$1" 2>/dev/null || echo 0)
+    else
+        local bytes
+        bytes=$(stat -c%s "$1" 2>/dev/null || echo 0)
+    fi
+    if [ "$bytes" -ge 1073741824 ]; then
+        echo "$(awk "BEGIN {printf \"%.1fG\", $bytes/1073741824}")" 
+    elif [ "$bytes" -ge 1048576 ]; then
+        echo "$(awk "BEGIN {printf \"%.1fM\", $bytes/1048576}")"
+    elif [ "$bytes" -ge 1024 ]; then
+        echo "$(awk "BEGIN {printf \"%.1fK\", $bytes/1024}")"
+    else
+        echo "${bytes}B"
+    fi
+}
+
 # ==============================================================================
 #  1. SYSTEM CHECK
 # ==============================================================================
@@ -186,8 +218,8 @@ generate_vcd_xml() {
   </sequence-items>
 </videocd>
 XMLEOF
-        sed -i "s|PLACEHOLDER_NAME|${VOLUME_ID_VALUE}|g" "$OUTPUT_FILE"
-        sed -i "s|PLACEHOLDER_CDI|${CDI_DIR}|g" "$OUTPUT_FILE"
+        sed_i "s|PLACEHOLDER_NAME|${VOLUME_ID_VALUE}|g" "$OUTPUT_FILE"
+        sed_i "s|PLACEHOLDER_CDI|${CDI_DIR}|g" "$OUTPUT_FILE"
     else
         # MISTRVCD.APP format (single file)
         cat > "$OUTPUT_FILE" <<'XMLEOF'
@@ -218,9 +250,9 @@ XMLEOF
   </sequence-items>
 </videocd>
 XMLEOF
-        sed -i "s|PLACEHOLDER_NAME|${VOLUME_ID_VALUE}|g" "$OUTPUT_FILE"
-        sed -i "s|PLACEHOLDER_MISTR_NAME|${MISTR_NAME_UPPER}|g" "$OUTPUT_FILE"
-        sed -i "s|PLACEHOLDER_MISTR|${MISTR_PATH}|g" "$OUTPUT_FILE"
+        sed_i "s|PLACEHOLDER_NAME|${VOLUME_ID_VALUE}|g" "$OUTPUT_FILE"
+        sed_i "s|PLACEHOLDER_MISTR_NAME|${MISTR_NAME_UPPER}|g" "$OUTPUT_FILE"
+        sed_i "s|PLACEHOLDER_MISTR|${MISTR_PATH}|g" "$OUTPUT_FILE"
     fi
 }
 
@@ -338,7 +370,7 @@ process_video() {
         return
     fi
     
-    VIDEO_SIZE=$(du -h "temp_video.m1v" | cut -f1)
+    VIDEO_SIZE=$(portable_du "temp_video.m1v")
     echo -e "   ${GREEN}✅ Video encoded: $VIDEO_SIZE${NC}"
 
     # 3.3 ENCODE AUDIO (with mono detection/forcing options)
@@ -386,7 +418,7 @@ process_video() {
             -f mp2 -y "temp_audio.mp2" >> "$LOG_FILE" 2>&1
     fi
     
-    AUDIO_SIZE=$(du -h "temp_audio.mp2" | cut -f1)
+    AUDIO_SIZE=$(portable_du "temp_audio.mp2")
     if [ "$AUDIO_CHANNELS" -eq 1 ]; then
         echo -e "   ${GREEN}✅ Audio encoded: $AUDIO_SIZE (mono at $AUDIO_BITRATE)${NC}"
     else
@@ -404,7 +436,7 @@ process_video() {
          echo -e "${RED}⚠️  WARNING: Buffer starvation detected!${NC}"
     fi
     
-    FINAL_SIZE=$(du -h "compliant.mpg" | cut -f1)
+    FINAL_SIZE=$(portable_du "compliant.mpg")
     echo -e "   ${GREEN}✅ Final MPEG: $FINAL_SIZE${NC}"
 
 
@@ -423,7 +455,7 @@ process_video() {
         sed "s|videocd.bin|${CLEAN_NAME}.bin|g" videocd.cue > "$OUTPUT_DIR/${CLEAN_NAME}.cue"
         rm videocd.cue
         
-        DISC_SIZE=$(du -h "$OUTPUT_DIR/${CLEAN_NAME}.bin" | cut -f1)
+        DISC_SIZE=$(portable_du "$OUTPUT_DIR/${CLEAN_NAME}.bin")
         echo -e "${GREEN}✅ Finished: $OUTPUT_DIR/${CLEAN_NAME}.bin ($DISC_SIZE)${NC}"
         
         # 3.7 AUTO-CHD
@@ -435,7 +467,7 @@ process_video() {
             fi
             chdman createcd -i "$OUTPUT_DIR/${CLEAN_NAME}.cue" -o "$OUTPUT_DIR/${CLEAN_NAME}.chd" >> "$LOG_FILE" 2>&1
             if [ -f "$OUTPUT_DIR/${CLEAN_NAME}.chd" ]; then
-                CHD_SIZE=$(du -h "$OUTPUT_DIR/${CLEAN_NAME}.chd" | cut -f1)
+                CHD_SIZE=$(portable_du "$OUTPUT_DIR/${CLEAN_NAME}.chd")
                 echo -e "${GREEN}✅ Created CHD: $OUTPUT_DIR/${CLEAN_NAME}.chd ($CHD_SIZE)${NC}"
                 # Optional: rm "$OUTPUT_DIR/${CLEAN_NAME}.bin" "$OUTPUT_DIR/${CLEAN_NAME}.cue"
             fi
@@ -454,7 +486,7 @@ process_video() {
         # Multiplex without -R11
         mplex -f 1 -b 46 -o "compliant_lax.mpg" "temp_audio.mp2" "temp_video.m1v" >> "$LOG_FILE" 2>&1
         
-        LAX_SIZE=$(du -h "compliant_lax.mpg" | cut -f1)
+        LAX_SIZE=$(portable_du "compliant_lax.mpg")
         echo -e "   ${GREEN}✅ Final MPEG (lax): $LAX_SIZE${NC}"
         
         # Generate lax XML
@@ -469,7 +501,7 @@ process_video() {
             sed "s|videocd.bin|${CLEAN_NAME}_lax.bin|g" videocd.cue > "$OUTPUT_DIR/${CLEAN_NAME}_lax.cue"
             rm videocd.cue
             
-            LAX_DISC_SIZE=$(du -h "$OUTPUT_DIR/${CLEAN_NAME}_lax.bin" | cut -f1)
+            LAX_DISC_SIZE=$(portable_du "$OUTPUT_DIR/${CLEAN_NAME}_lax.bin")
             echo -e "${GREEN}✅ Finished (lax): $OUTPUT_DIR/${CLEAN_NAME}_lax.bin ($LAX_DISC_SIZE)${NC}"
             
             # Create lax CHD
@@ -478,7 +510,7 @@ process_video() {
                 [ -f "$OUTPUT_DIR/${CLEAN_NAME}_lax.chd" ] && rm "$OUTPUT_DIR/${CLEAN_NAME}_lax.chd"
                 chdman createcd -i "$OUTPUT_DIR/${CLEAN_NAME}_lax.cue" -o "$OUTPUT_DIR/${CLEAN_NAME}_lax.chd" >> "$LOG_FILE" 2>&1
                 if [ -f "$OUTPUT_DIR/${CLEAN_NAME}_lax.chd" ]; then
-                    LAX_CHD_SIZE=$(du -h "$OUTPUT_DIR/${CLEAN_NAME}_lax.chd" | cut -f1)
+                    LAX_CHD_SIZE=$(portable_du "$OUTPUT_DIR/${CLEAN_NAME}_lax.chd")
                     echo -e "${GREEN}✅ Created CHD (lax): $OUTPUT_DIR/${CLEAN_NAME}_lax.chd ($LAX_CHD_SIZE)${NC}"
                 fi
             fi
