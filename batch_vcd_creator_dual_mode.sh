@@ -72,11 +72,11 @@ portable_du() {
         bytes=$(stat -c%s "$1" 2>/dev/null || echo 0)
     fi
     if [ "$bytes" -ge 1073741824 ]; then
-        echo "$(awk "BEGIN {printf \"%.1fG\", $bytes/1073741824}")" 
+        awk -v b="$bytes" 'BEGIN {printf "%.1fG\n", b/1073741824}'
     elif [ "$bytes" -ge 1048576 ]; then
-        echo "$(awk "BEGIN {printf \"%.1fM\", $bytes/1048576}")"
+        awk -v b="$bytes" 'BEGIN {printf "%.1fM\n", b/1048576}'
     elif [ "$bytes" -ge 1024 ]; then
-        echo "$(awk "BEGIN {printf \"%.1fK\", $bytes/1024}")"
+        awk -v b="$bytes" 'BEGIN {printf "%.1fK\n", b/1024}'
     else
         echo "${bytes}B"
     fi
