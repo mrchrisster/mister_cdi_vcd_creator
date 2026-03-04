@@ -411,9 +411,15 @@ process_video() {
             -ar 44100 -ac $AUDIO_CHANNELS -b:a $AUDIO_BITRATE \
             -f mp2 -y "temp_audio.mp2" >> "$LOG_FILE" 2>&1
     else
-        # Default (all modes): full processing with soxr + loudnorm
+        # Default (all modes): full processing with loudnorm
+        # Detect if soxr resampler is available (not included in default macOS Homebrew ffmpeg)
+        if ffmpeg -hide_banner -filters 2>/dev/null | grep -q soxr; then
+            AUDIO_RESAMPLE_FILTER="aresample=resampler=soxr,"
+        else
+            AUDIO_RESAMPLE_FILTER=""
+        fi
         ffmpeg -v info -i "$FILE" \
-            -af "aresample=resampler=soxr,loudnorm=I=-16:TP=-1.5:LRA=11" \
+            -af "${AUDIO_RESAMPLE_FILTER}loudnorm=I=-16:TP=-1.5:LRA=11" \
             -ar 44100 -ac $AUDIO_CHANNELS -b:a $AUDIO_BITRATE -compression_level 0 \
             -f mp2 -y "temp_audio.mp2" >> "$LOG_FILE" 2>&1
     fi
