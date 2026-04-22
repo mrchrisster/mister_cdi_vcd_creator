@@ -2,7 +2,7 @@
 
 A robust, cross-platform batch tool to convert modern video files into **Philips CD-i compatible** Video CD (VCD) disc images.
 
-Designed for use with the **MiSTer FPGA CD-i Core** and accurate emulators (MAME/cdiemu).
+Designed for use with the **MiSTer FPGA CD-i Core** and accurate emulators (MAME/cdiemu). It will most likely work with any VCD player.
 
 ## Features
 - **Strict Compliance:** Uses `mpeg2enc` to enforce CD-i hardware limits.
